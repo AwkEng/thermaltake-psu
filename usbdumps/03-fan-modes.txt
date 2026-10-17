@@ -1,0 +1,2 @@
+2026-10-16T21:47:12.5407891-06:00  START device=13 pid=28536  plan: silent -> performance -> zero-rpm -> custom 30..100% step 10
+2026-10-16T21:52:07.1015441-06:00  STOP  user: first and last change were 'silent'

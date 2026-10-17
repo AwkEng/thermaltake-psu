@@ -1,0 +1,3 @@
+# Thermaltake Toughpower DPS G PSU: let logged-in users and the "plugdev" group
+# access the hidraw node without root.
+KERNEL=="hidraw*", ATTRS{idVendor}=="264a", ATTRS{idProduct}=="2329", MODE="0660", GROUP="plugdev", TAG+="uaccess"
