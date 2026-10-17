@@ -1,9 +1,15 @@
 """Talk to the PSU over HID. See docs/PROTOCOL.md for the wire format."""
 from __future__ import annotations
 
+import sys
 from dataclasses import asdict, dataclass, field
 
-import hid
+if sys.platform.startswith("linux"):
+    # The default "hid" module uses libusb on Linux, which detaches the kernel
+    # driver (unbinding thermaltake-psu); the hidraw backend coexists with it.
+    import hidraw as hid
+else:
+    import hid
 
 VID, PID = 0x264A, 0x2329
 REPORT_LEN = 64
