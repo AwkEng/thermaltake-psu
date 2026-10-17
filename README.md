@@ -14,25 +14,43 @@ and fan speed through the standard hwmon sysfs interface (so `sensors` just
 works), plus fan mode control via `pwm1`/`pwm1_enable`. See
 [docs/thermaltake-psu.rst](docs/thermaltake-psu.rst) for the attribute list.
 
-## Building and installing
+## Installing
 
-Needs the headers for your running kernel (`linux-headers-$(uname -r)` on
-Debian/Ubuntu).
+Needs DKMS and the headers for your kernel. On Debian/Ubuntu, install
+`linux-headers-generic` (not just the current kernel's headers) so DKMS can
+rebuild the driver for future kernels:
 
 ```sh
-make
-sudo insmod thermaltake-psu.ko     # try it out
-sensors thermaltakepsu-*
+sudo apt install dkms build-essential linux-headers-generic lm-sensors
 ```
 
-To keep it installed across kernel updates, use DKMS:
+Install the release tarball (driver source only, ~14 KB):
 
 ```sh
-sudo dkms add .
+curl -LO https://github.com/AwkEng/thermaltake-psu/releases/download/v0.1.0/thermaltake-psu-0.1.0.tar.gz
+curl -LO https://github.com/AwkEng/thermaltake-psu/releases/download/v0.1.0/thermaltake-psu-0.1.0.tar.gz.sha256
+sha256sum -c thermaltake-psu-0.1.0.tar.gz.sha256
+sudo tar -C /usr/src -xzf thermaltake-psu-0.1.0.tar.gz
 sudo dkms install thermaltake-psu/0.1.0
+sensors 'thermaltakepsu-*'
 ```
 
-The module then loads automatically whenever the PSU's USB cable is connected.
+The module then loads automatically whenever the PSU's USB cable is connected,
+and DKMS rebuilds it on kernel updates. To uninstall:
+`sudo dkms remove thermaltake-psu/0.1.0 --all && sudo rm -r /usr/src/thermaltake-psu-0.1.0`.
+
+**Secure Boot:** if `mokutil --sb-state` says enabled, DKMS signs the module but
+the firmware must trust its key once:
+`sudo mokutil --import /var/lib/shim-signed/mok/MOK.der`, reboot, and choose
+*Enroll MOK*. Otherwise loading fails with "Key was rejected by service".
+
+### From a git checkout
+
+```sh
+make && sudo insmod thermaltake-psu.ko     # try it without installing
+sudo dkms add . && sudo dkms install thermaltake-psu/0.1.0
+```
+
 To update after pulling changes:
 `sudo dkms remove thermaltake-psu/0.1.0 --all && sudo dkms add . && sudo dkms install thermaltake-psu/0.1.0`.
 
