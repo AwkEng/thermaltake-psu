@@ -32,6 +32,10 @@ sudo dkms add .
 sudo dkms install thermaltake-psu/0.1.0
 ```
 
+The module then loads automatically whenever the PSU's USB cable is connected.
+To update after pulling changes:
+`sudo dkms remove thermaltake-psu/0.1.0 --all && sudo dkms add . && sudo dkms install thermaltake-psu/0.1.0`.
+
 ### Fan mode
 
 ```sh
@@ -56,7 +60,7 @@ echo "options thermaltake-psu fan_mode=silent" | sudo tee /etc/modprobe.d/therma
 - [x] Telemetry (voltages, currents, power, temperature, fan RPM)
 - [x] Fan mode control (silent / performance / zero / custom 30-100%)
 - [x] Userspace tool (`tools/ttpsu`) – works without the driver, also on Windows
-- [ ] Kernel driver tested on hardware
+- [x] Kernel driver tested on hardware (Ubuntu 26.04, kernel 7.0.0-38, via DKMS)
 - [ ] Map the 8 +12v channels to physical connectors
 
 ## Not supported: RGB lighting
