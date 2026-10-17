@@ -40,6 +40,17 @@ echo 2 > pwm1_enable                 # 0 full, 1 manual, 2 silent, 3 performance
 echo 1 > pwm1_enable; echo 153 > pwm1  # manual 60% (PSU minimum is 30%)
 ```
 
+The PSU can't report its fan mode, so `pwm1_enable` is unreadable (and
+`sensors` prints an error for it) until a mode has been set. To set one every
+time the driver loads:
+
+```sh
+echo "options thermaltake-psu fan_mode=silent" | sudo tee /etc/modprobe.d/thermaltake-psu.conf
+```
+
+`fan_mode` takes `full`, `silent`, `performance`, `zero`, or a manual duty
+`30`-`100`. Without it the driver never changes the fan on its own.
+
 ## Status
 
 - [x] Telemetry (voltages, currents, power, temperature, fan RPM)

@@ -76,6 +76,17 @@
 #define PWM_ENABLE_PERFORMANCE	3
 #define PWM_ENABLE_ZERO		4
 
+static char *fan_mode;
+module_param(fan_mode, charp, 0444);
+MODULE_PARM_DESC(fan_mode, "Fan mode to set when the PSU is probed: full, silent, performance, zero, or a manual duty in percent (30-100). Default: leave the fan unchanged");
+
+static const char *const fan_mode_names[] = {
+	[PWM_ENABLE_FULL]	 = "full",
+	[PWM_ENABLE_SILENT]	 = "silent",
+	[PWM_ENABLE_PERFORMANCE] = "performance",
+	[PWM_ENABLE_ZERO]	 = "zero",
+};
+
 struct ttpsu_data {
 	struct hid_device *hdev;
 	struct device *hwmon_dev;
@@ -239,6 +250,51 @@ static int ttpsu_apply_pwm_enable(struct ttpsu_data *priv, long enable)
 	default:
 		return -EINVAL;
 	}
+}
+
+/* Parse the fan_mode module parameter into pwm1_enable and pwm1 values. */
+static int ttpsu_parse_fan_mode(const char *str, long *enable, long *pwm)
+{
+	unsigned int duty;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(fan_mode_names); i++) {
+		if (fan_mode_names[i] && sysfs_streq(str, fan_mode_names[i])) {
+			*enable = i;
+			return 0;
+		}
+	}
+
+	if (kstrtouint(str, 10, &duty) || duty < FAN_DUTY_MIN || duty > FAN_DUTY_MAX)
+		return -EINVAL;
+
+	*enable = PWM_ENABLE_MANUAL;
+	*pwm = DIV_ROUND_CLOSEST(duty * 255, 100);
+	return 0;
+}
+
+static void ttpsu_init_fan_mode(struct ttpsu_data *priv)
+{
+	long enable, pwm = priv->pwm;
+	int ret;
+
+	if (ttpsu_parse_fan_mode(fan_mode, &enable, &pwm)) {
+		hid_warn(priv->hdev, "invalid fan_mode \"%s\", leaving the fan unchanged\n",
+			 fan_mode);
+		return;
+	}
+
+	mutex_lock(&priv->lock);
+	priv->pwm = pwm;
+	ret = ttpsu_apply_pwm_enable(priv, enable);
+	if (!ret)
+		priv->pwm_enable = enable;
+	mutex_unlock(&priv->lock);
+
+	if (ret)
+		hid_warn(priv->hdev, "failed to set fan_mode \"%s\" (%d)\n", fan_mode, ret);
+	else
+		hid_info(priv->hdev, "fan mode set to %s\n", fan_mode);
 }
 
 static umode_t ttpsu_hwmon_ops_is_visible(const void *data, enum hwmon_sensor_types type,
@@ -525,6 +581,9 @@ static int ttpsu_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	ret = ttpsu_read_string(priv, CLASS_READ, CMD_SERIAL, priv->serial, sizeof(priv->serial));
 	if (ret < 0)
 		dev_warn(&hdev->dev, "no reply to serial request (%d)\n", ret);
+
+	if (fan_mode)
+		ttpsu_init_fan_mode(priv);
 
 	priv->hwmon_dev = hwmon_device_register_with_info(&hdev->dev, "thermaltakepsu", priv,
 							  &ttpsu_chip_info, NULL);

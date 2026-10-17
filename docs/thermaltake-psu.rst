@@ -52,10 +52,21 @@ pwm1_enable		Fan mode:
 
 			The PSU can't report its fan mode, so reading
 			pwm1_enable fails with -ENODATA until it has been
-			written once. The PSU keeps the mode without the driver.
+			written once (or set by the fan_mode parameter). The
+			PSU keeps the mode without the driver.
 =======================	========================================================
 
 Every ``*_input`` attribute has a matching ``*_label``.
+
+Module parameters
+-----------------
+
+=======================	========================================================
+fan_mode		Fan mode to set when the PSU is probed: ``full``,
+			``silent``, ``performance``, ``zero``, or a manual duty
+			in percent (``30`` to ``100``). If unset (the default)
+			the driver leaves the fan as it is.
+=======================	========================================================
 
 Debugfs entries
 ---------------
